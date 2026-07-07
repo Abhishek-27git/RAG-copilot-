@@ -1,7 +1,5 @@
-import { Logo } from "@/components/logo";
-
 /**
- * Auth layout — centered card with gradient background.
+ * Auth layout — centered container with gradient background.
  * Used by /login and /signup pages.
  */
 export default function AuthLayout({
@@ -28,21 +26,8 @@ export default function AuthLayout({
         }}
       />
 
-      <div className="relative z-10 w-full max-w-md px-4">
-        {/* Logo at top */}
-        <div className="mb-8 flex justify-center">
-          <Logo />
-        </div>
-
-        {/* Auth card */}
-        <div className="rounded-2xl border border-border/50 bg-card/80 p-8 shadow-2xl shadow-black/20 backdrop-blur-xl">
-          {children}
-        </div>
-
-        {/* Footer */}
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Enterprise-grade AI Due Diligence Platform
-        </p>
+      <div className="relative z-10 w-full flex justify-center px-4 py-8">
+        {children}
       </div>
     </div>
   );
