@@ -22,3 +22,11 @@ class UserOut(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str = Field(..., min_length=8, description="Password must be at least 8 characters")
+

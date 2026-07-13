@@ -18,7 +18,12 @@ export function proxy(request: NextRequest) {
   }
 
   // Redirect authenticated users away from auth pages
-  if (pathname === "/login" || pathname === "/signup") {
+  if (
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password"
+  ) {
     if (isAuthenticated) {
       const dashboardUrl = new URL("/dashboard", request.url);
       return NextResponse.redirect(dashboardUrl);

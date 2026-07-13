@@ -4,25 +4,25 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 from app.core.config import settings
 
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Verify a plain password against its hashed value using bcrypt directly.
+    Verify a plain password against its hashed value using passlib.
     """
     try:
-        return bcrypt.checkpw(
-            plain_password.encode("utf-8"),
-            hashed_password.encode("utf-8")
-        )
+        return pwd_context.verify(plain_password, hashed_password)
     except Exception:
         return False
 
 def get_password_hash(password: str) -> str:
     """
-    Hash a plain text password using bcrypt directly.
+    Hash a plain text password using passlib.
     """
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
-    return hashed.decode("utf-8")
+    return pwd_context.hash(password)
+
 
 
 def create_jwt_token(data: dict, expires_delta: timedelta) -> str:

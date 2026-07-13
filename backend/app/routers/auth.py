@@ -1,19 +1,24 @@
 import uuid
 from datetime import timedelta
-from sqlalchemy import select
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import (
-    get_password_hash,
-    verify_password,
     create_jwt_token,
     decode_jwt_token,
 )
 from app.models.user import User
-from app.schemas.auth import UserRegister, UserLogin, UserOut, MessageResponse
+from app.schemas.auth import (
+    UserRegister,
+    UserLogin,
+    UserOut,
+    MessageResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+)
+from app.services.user import UserService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -90,10 +95,7 @@ async def get_current_user(
             detail="Authentication failed: Invalid token claims",
         )
 
-    stmt = select(User).where(User.id == user_uuid)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-
+    user = await UserService.get_by_id(db, user_uuid)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -109,23 +111,15 @@ async def register(
     db: AsyncSession = Depends(get_db)
 ):
     # Check if email is already registered
-    stmt = select(User).where(User.email == payload.email)
-    result = await db.execute(stmt)
-    if result.scalar_one_or_none():
+    existing_user = await UserService.get_by_email(db, payload.email)
+    if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email is already registered",
         )
 
-    # Hash password and create user
-    hashed_pwd = get_password_hash(payload.password)
-    user = User(
-        email=payload.email,
-        hashed_password=hashed_pwd,
-        name=payload.name
-    )
-    db.add(user)
-    await db.flush() # populates user.id without committing transaction
+    # Create user via service layer
+    user = await UserService.create(db, payload)
 
     # Issue access/refresh tokens
     user_id_str = str(user.id)
@@ -148,12 +142,9 @@ async def login(
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
-    # Retrieve user by email
-    stmt = select(User).where(User.email == payload.email)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-
-    if not user or not verify_password(payload.password, user.hashed_password):
+    # Authenticate user via service layer
+    user = await UserService.authenticate(db, payload)
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -210,9 +201,7 @@ async def refresh(
             detail="Invalid token subject",
         )
 
-    stmt = select(User).where(User.id == user_uuid)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
+    user = await UserService.get_by_id(db, user_uuid)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -243,3 +232,66 @@ async def logout(response: Response):
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    user = await UserService.get_by_email(db, payload.email)
+    if user:
+        # Create reset token (JWT) valid for 15 minutes
+        token = create_jwt_token(
+            data={"sub": str(user.id), "type": "reset"},
+            expires_delta=timedelta(minutes=15)
+        )
+        # Log reset link to console for local development verification
+        reset_url = f"http://localhost:3000/reset-password?token={token}"
+        print("\n" + "="*50)
+        print(f"PASSWORD RESET REQUEST FOR USER: {user.email}")
+        print(f"Token: {token}")
+        print(f"Reset Link: {reset_url}")
+        print("="*50 + "\n")
+    
+    # Return a generic message regardless of email existence to prevent user enumeration
+    return {"message": "If your email is registered, we have sent a reset password link."}
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    payload: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    # Decode reset token
+    decoded = decode_jwt_token(payload.token)
+    if not decoded or decoded.get("type") != "reset":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    user_id_str = decoded.get("sub")
+    if not user_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token payload"
+        )
+    
+    try:
+        user_uuid = uuid.UUID(user_id_str)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token subject"
+        )
+    
+    user = await UserService.get_by_id(db, user_uuid)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    await UserService.update_password(db, user, payload.password)
+    return {"message": "Password reset successfully. You can now log in."}
