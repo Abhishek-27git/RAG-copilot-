@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.routers import auth, deal
+from app.routers import documents
 
 app = FastAPI(
     title="AI Due Diligence Copilot API",
@@ -23,6 +24,7 @@ app.add_middleware(
 # Register routers
 app.include_router(auth.router)
 app.include_router(deal.router)
+app.include_router(documents.router)
 
 @app.get("/")
 def read_root():

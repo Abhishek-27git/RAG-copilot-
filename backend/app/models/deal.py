@@ -35,3 +35,10 @@ class Deal(Base):
 
     # Relationship back to the owner
     owner: Mapped["User"] = relationship("User", back_populates="deals")
+
+    # Relationship to documents belonging to this deal
+    documents: Mapped[list["Document"]] = relationship(
+        "Document",
+        back_populates="deal",
+        cascade="all, delete-orphan",
+    )

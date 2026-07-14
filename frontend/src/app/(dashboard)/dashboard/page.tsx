@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import { 
   FolderPlus, 
   Folder, 
@@ -10,7 +11,8 @@ import {
   Edit3, 
   Loader2, 
   Calendar, 
-  AlertTriangle
+  AlertTriangle,
+  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -37,6 +39,7 @@ interface Deal {
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -208,21 +211,31 @@ export default function DashboardPage() {
                   <Calendar className="h-3 w-3" />
                   <span>{formatDate(deal.created_at)}</span>
                 </div>
-                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1.5">
                   <button
-                    onClick={() => openEdit(deal)}
-                    className="p-1 rounded-md border border-border/40 hover:bg-muted/30 hover:text-foreground transition-all cursor-pointer"
-                    title="Edit Deal"
+                    onClick={() => router.push(`/dashboard/deals/${deal.id}`)}
+                    className="flex items-center gap-1 p-1 px-2 rounded-md border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-all text-[10px] font-semibold"
+                    title="Open Workspace"
                   >
-                    <Edit3 className="h-3 w-3" />
+                    <ExternalLink className="h-3 w-3" />
+                    Open
                   </button>
-                  <button
-                    onClick={() => openDelete(deal)}
-                    className="p-1 rounded-md border border-border/40 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer"
-                    title="Delete Deal"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
+                    <button
+                      onClick={() => openEdit(deal)}
+                      className="p-1 rounded-md border border-border/40 hover:bg-muted/30 hover:text-foreground transition-all cursor-pointer"
+                      title="Edit Deal"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => openDelete(deal)}
+                      className="p-1 rounded-md border border-border/40 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer"
+                      title="Delete Deal"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               </CardFooter>
             </Card>
