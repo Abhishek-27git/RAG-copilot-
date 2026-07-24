@@ -42,3 +42,12 @@ class Deal(Base):
         back_populates="deal",
         cascade="all, delete-orphan",
     )
+
+    # Relationship to messages belonging to this deal
+    messages: Mapped[list["Message"]] = relationship(
+        "Message",
+        back_populates="deal",
+        cascade="all, delete-orphan",
+        order_by="Message.created_at",
+    )
+

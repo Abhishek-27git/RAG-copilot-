@@ -2,8 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import auth, deal
-from app.routers import documents
+from app.routers import auth, deal, documents, chat
 
 app = FastAPI(
     title="AI Due Diligence Copilot API",
@@ -25,6 +24,8 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(deal.router)
 app.include_router(documents.router)
+app.include_router(chat.router)
+
 
 @app.get("/")
 def read_root():

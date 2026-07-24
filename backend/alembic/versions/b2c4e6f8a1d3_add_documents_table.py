@@ -8,6 +8,8 @@ Create Date: 2026-07-15 00:00:00.000000
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
 
 # revision identifiers, used by Alembic.
 revision: str = 'b2c4e6f8a1d3'
@@ -17,10 +19,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create the documentstatus enum type first
+    # Create the documentstatus enum type first if it doesn't exist
     op.execute(
-        "CREATE TYPE documentstatus AS ENUM ('pending', 'processing', 'ready', 'failed')"
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'documentstatus') THEN
+                CREATE TYPE documentstatus AS ENUM ('pending', 'processing', 'ready', 'failed');
+            END IF;
+        END
+        $$;
+        """
     )
+
 
     op.create_table(
         'documents',
@@ -30,11 +41,12 @@ def upgrade() -> None:
         sa.Column('file_type', sa.String(length=16), nullable=False),
         sa.Column(
             'status',
-            sa.Enum('pending', 'processing', 'ready', 'failed',
-                    name='documentstatus', native_enum=True),
+            postgresql.ENUM('pending', 'processing', 'ready', 'failed', name='documentstatus', create_type=False),
             nullable=False,
-            index=True,
         ),
+
+
+
         sa.Column('storage_path', sa.String(length=1024), nullable=False),
         sa.Column('error_message', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),

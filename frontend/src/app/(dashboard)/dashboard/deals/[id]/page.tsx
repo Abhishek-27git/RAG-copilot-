@@ -4,10 +4,10 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { CitationItem } from "@/lib/chat";
 import {
   ArrowLeft,
   Calendar,
-  FileText,
   Loader2,
   AlertTriangle,
   PanelRightOpen,
@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentSidebar } from "@/components/DocumentSidebar";
+import { ChatPanel } from "@/components/ChatPanel";
+import { SourceViewer } from "@/components/SourceViewer";
 import Link from "next/link";
 
 interface Deal {
@@ -32,6 +34,7 @@ export default function DealWorkspacePage() {
   const dealId = params.id;
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedCitation, setSelectedCitation] = useState<CitationItem | null>(null);
 
   const {
     data: deal,
@@ -69,7 +72,7 @@ export default function DealWorkspacePage() {
 
   return (
     <div className="flex h-full overflow-hidden -m-8">
-      {/* Main workspace panel */}
+      {/* Main workspace area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Workspace header */}
         <div className="flex shrink-0 items-center justify-between border-b border-border/15 bg-card/5 px-6 py-4">
@@ -135,26 +138,22 @@ export default function DealWorkspacePage() {
           </div>
         </div>
 
-        {/* Workspace content area */}
-        <div className="flex flex-1 overflow-y-auto p-8 items-start justify-center">
-          <div className="w-full max-w-2xl space-y-6">
-            {/* AI Chat placeholder */}
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/40 bg-card/5 py-16 px-6 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground">
-                  AI Analysis Coming Soon
-                </h3>
-                <p className="mt-1.5 max-w-sm text-xs text-muted-foreground leading-relaxed">
-                  Upload documents using the panel on the right. Once
-                  processed, you'll be able to ask questions about your
-                  due diligence materials here.
-                </p>
-              </div>
-            </div>
+        {/* Workspace Chat Panel */}
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <ChatPanel
+              dealId={dealId}
+              onSelectCitation={(citation) => setSelectedCitation(citation)}
+            />
           </div>
+
+          {/* Source Passage Viewer Panel */}
+          {selectedCitation && (
+            <SourceViewer
+              citation={selectedCitation}
+              onClose={() => setSelectedCitation(null)}
+            />
+          )}
         </div>
       </div>
 
